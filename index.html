@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Les Tables de Multiplication</title>
+
+<!-- === PWA : installation sur écran d'accueil en plein écran === -->
+<meta name="theme-color" content="#FF6B35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Multiplications">
+
+<!-- Icône SVG en data URI : un "×" blanc sur fond orange, net à toute taille -->
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='36' fill='%23FF6B35'/><text x='50%25' y='52%25' font-family='Arial Black,sans-serif' font-size='120' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='central'>%C3%97</text><text x='50%25' y='88%25' font-family='Arial,sans-serif' font-size='26' font-weight='bold' fill='%23FFD700' text-anchor='middle'>1 2 3</text></svg>">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='36' fill='%23FF6B35'/><text x='50%25' y='55%25' font-family='Arial Black,sans-serif' font-size='130' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='central'>%C3%97</text></svg>">
+
+<!-- Manifest PWA en data URI : permet l'installation sur Android sans fichier séparé -->
+<link rel="manifest" href='data:application/manifest+json,{"name":"Les Tables de Multiplication","short_name":"Multiplications","start_url":".","display":"standalone","orientation":"portrait","background_color":"%23FFE5B4","theme_color":"%23FF6B35","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2736%27 fill=%27%23FF6B35%27/><text x=%2750%25%27 y=%2755%25%27 font-family=%27Arial Black,sans-serif%27 font-size=%27130%27 font-weight=%27900%27 fill=%27white%27 text-anchor=%27middle%27 dominant-baseline=%27central%27>%C3%97</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
+
+<style>
+  /* === Reset et base === */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+    background: linear-gradient(135deg, #FFE5B4 0%, #FFB6C1 50%, #B0E0E6 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #2d2d2d;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* === Conteneur principal === */
+  .app {
+    max-width: 800px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 30px;
+    padding: 30px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    text-align: center;
+    color: #FF6B35;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 0 #FFD700;
+  }
+  h2 { font-size: 1.8rem; color: #4A90E2; margin: 20px 0 15px; text-align: center; }
+  p, label { font-size: 1.3rem; }
+
+  /* === Écrans (un seul visible à la fois) === */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+
+  /* === Boutons === */
+  .btn {
+    display: inline-block;
+    font-family: inherit;
+    font-size: 1.4rem;
+    font-weight: bold;
+    padding: 18px 30px;
+    margin: 8px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    background: #4A90E2;
+    color: #fff;
+    box-shadow: 0 6px 0 #2E5C8A;
+    transition: transform 0.1s, box-shadow 0.1s;
+    min-height: 60px;
+    min-width: 120px;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #2E5C8A; }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #2E5C8A; }
+  .btn-primary { background: #FF6B35; box-shadow: 0 6px 0 #B84A1E; }
+  .btn-primary:hover { box-shadow: 0 8px 0 #B84A1E; }
+  .btn-primary:active { box-shadow: 0 2px 0 #B84A1E; }
+  .btn-success { background: #4CAF50; box-shadow: 0 6px 0 #2E7D32; }
+  .btn-success:active { box-shadow: 0 2px 0 #2E7D32; }
+
+  /* === Sélection des tables === */
+  .tables-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .table-btn {
+    font-family: inherit;
+    font-size: 1.6rem;
+    font-weight: bold;
+    padding: 20px 10px;
+    border: 4px solid #ddd;
+    border-radius: 18px;
+    background: #fff;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 70px;
+  }
+  .table-btn:hover { border-color: #4A90E2; transform: scale(1.05); }
+  .table-btn.selected {
+    background: #4A90E2;
+    color: #fff;
+    border-color: #2E5C8A;
+    transform: scale(1.05);
+  }
+  .all-tables {
+    text-align: center;
+    margin: 15px 0;
+  }
+
+  /* === Options (nombre de questions, modes) === */
+  .options-group {
+    margin: 25px 0;
+    text-align: center;
+  }
+  .options-group h3 {
+    font-size: 1.4rem;
+    margin-bottom: 12px;
+    color: #555;
+  }
+  .option-btn {
+    font-family: inherit;
+    font-size: 1.3rem;
+    padding: 14px 24px;
+    margin: 5px;
+    border: 3px solid #ddd;
+    border-radius: 15px;
+    background: #fff;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+  }
+  .option-btn.selected {
+    background: #FFD700;
+    border-color: #FF6B35;
+    color: #333;
+  }
+
+  .center { text-align: center; }
+
+  /* === Zone du quiz === */
+  .progress-bar {
+    background: #eee;
+    border-radius: 20px;
+    height: 20px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .progress-fill {
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    height: 100%;
+    transition: width 0.3s;
+    width: 0%;
+  }
+  .quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    gap: 10px;
+  }
+  /* Petit bouton "maison" pour quitter une session en cours */
+  .quit-btn {
+    font-family: inherit;
+    font-size: 1.4rem;
+    background: #fff;
+    border: 3px solid #FF6B35;
+    color: #FF6B35;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+    transition: transform 0.1s;
+  }
+  .quit-btn:hover { transform: scale(1.1); }
+  .quit-btn:active { transform: scale(0.95); }
+  .timer { color: #FF6B35; }
+  .score-display { color: #4CAF50; }
+
+  .question {
+    font-size: 4rem;
+    text-align: center;
+    margin: 40px 0;
+    color: #333;
+    font-weight: bold;
+  }
+  .question .equals { color: #4A90E2; }
+
+  .answer-input {
+    display: block;
+    width: 200px;
+    margin: 0 auto 20px;
+    font-size: 3rem;
+    text-align: center;
+    padding: 15px;
+    border: 4px solid #4A90E2;
+    border-radius: 20px;
+    font-family: inherit;
+    font-weight: bold;
+    -moz-appearance: textfield;
+  }
+  .answer-input::-webkit-outer-spin-button,
+  .answer-input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .answer-input:focus { outline: none; border-color: #FF6B35; }
+
+  /* === Feedback === */
+  .feedback {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    min-height: 60px;
+    margin: 15px 0;
+    padding: 15px;
+    border-radius: 15px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .feedback.show { opacity: 1; }
+  .feedback.correct {
+    background: #C8E6C9;
+    color: #2E7D32;
+    animation: pulse 0.5s;
+  }
+  .feedback.wrong {
+    background: #FFCDD2;
+    color: #C62828;
+    animation: shake 0.5s;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* === Étoiles de récompense === */
+  .stars-display {
+    text-align: center;
+    font-size: 3rem;
+    margin: 15px 0;
+    min-height: 60px;
+  }
+  .star {
+    display: inline-block;
+    animation: starPop 0.5s ease;
+  }
+  @keyframes starPop {
+    0% { transform: scale(0) rotate(0); }
+    50% { transform: scale(1.3) rotate(180deg); }
+    100% { transform: scale(1) rotate(360deg); }
+  }
+
+  /* === Écran de résultats === */
+  .final-score {
+    font-size: 5rem;
+    text-align: center;
+    color: #FF6B35;
+    margin: 20px 0;
+    font-weight: bold;
+  }
+  .encouragement {
+    text-align: center;
+    font-size: 1.6rem;
+    margin: 20px 0;
+    padding: 20px;
+    background: #FFF9C4;
+    border-radius: 20px;
+    color: #333;
+  }
+  .mistakes-list {
+    background: #FFF3E0;
+    border-radius: 20px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+  .mistakes-list h3 {
+    color: #E65100;
+    margin-bottom: 15px;
+    text-align: center;
+  }
+  .mistake-item {
+    background: #fff;
+    padding: 12px 15px;
+    margin: 8px 0;
+    border-radius: 10px;
+    font-size: 1.3rem;
+    border-left: 5px solid #FF6B35;
+  }
+  .mistake-item .wrong-ans { color: #C62828; text-decoration: line-through; }
+  .mistake-item .right-ans { color: #2E7D32; font-weight: bold; }
+
+  /* === Adaptations mobiles / tablettes === */
+  @media (max-width: 600px) {
+    .app { padding: 20px; border-radius: 20px; }
+    h1 { font-size: 2rem; }
+    .tables-grid { grid-template-columns: repeat(3, 1fr); }
+    .question { font-size: 3rem; }
+    .answer-input { width: 160px; font-size: 2.5rem; }
+    .final-score { font-size: 3.5rem; }
+    .btn { font-size: 1.2rem; padding: 15px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================================ -->
+  <!-- ÉCRAN 1 : ACCUEIL ET CONFIGURATION           -->
+  <!-- ============================================ -->
+  <div id="screen-home" class="screen active">
+    <h1>🎯 Les Tables de Multiplication</h1>
+    <p class="center">Choisis tes tables et c'est parti !</p>
+
+    <h2>Quelles tables veux-tu réviser ?</h2>
+    <div class="all-tables">
+      <button class="option-btn" id="btn-all-tables" type="button">✨ Toutes les tables</button>
+    </div>
+    <div class="tables-grid" id="tables-grid">
+      <!-- Boutons 1 à 10 générés par JS -->
+    </div>
+
+    <div class="options-group">
+      <h3>Combien de questions ?</h3>
+      <button class="option-btn count-btn" data-count="10">10</button>
+      <button class="option-btn count-btn selected" data-count="20">20</button>
+      <button class="option-btn count-btn" data-count="30">30</button>
+    </div>
+
+    <div class="options-group">
+      <h3>Quel mode ?</h3>
+      <button class="option-btn mode-btn selected" data-mode="normal">Normal (3 × 4 = ?)</button>
+      <button class="option-btn mode-btn" data-mode="reverse">À l'envers (? × ? = 12)</button>
+    </div>
+
+    <div class="options-group">
+      <h3>Chronomètre ?</h3>
+      <button class="option-btn timer-btn selected" data-timer="off">Sans chrono</button>
+      <button class="option-btn timer-btn" data-timer="on">Avec chrono</button>
+    </div>
+
+    <div class="center" style="margin-top: 30px;">
+      <button class="btn btn-primary" id="btn-start" type="button">🚀 C'est parti !</button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- ÉCRAN 2 : QUIZ                                -->
+  <!-- ============================================ -->
+  <div id="screen-quiz" class="screen">
+    <div class="quiz-header">
+      <button class="quit-btn" id="btn-quit" type="button" title="Retour à l'accueil">🏠</button>
+      <span id="question-counter">Question 1 / 10</span>
+      <span class="timer" id="timer-display"></span>
+      <span class="score-display" id="live-score">⭐ 0</span>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+
+    <div class="stars-display" id="stars-display"></div>
+
+    <div class="question" id="question-text">3 × 4 = ?</div>
+
+    <input type="number" class="answer-input" id="answer-input" placeholder="?" inputmode="numeric" autocomplete="off">
+
+    <div class="center">
+      <button class="btn btn-success" id="btn-validate" type="button">✓ Valider</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- ÉCRAN 3 : RÉSULTATS                           -->
+  <!-- ============================================ -->
+  <div id="screen-results" class="screen">
+    <h1 id="results-title">🎉 Bravo !</h1>
+    <div class="final-score" id="final-score">0 / 0</div>
+    <div class="stars-display" id="final-stars"></div>
+    <div class="encouragement" id="encouragement-msg"></div>
+
+    <div class="mistakes-list" id="mistakes-section" style="display:none;">
+      <h3>📝 À revoir :</h3>
+      <div id="mistakes-list"></div>
+    </div>
+
+    <div class="center" style="margin-top: 25px;">
+      <button class="btn btn-primary" id="btn-replay" type="button">🔄 Rejouer</button>
+      <button class="btn" id="btn-home" type="button">🏠 Accueil</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   APPLICATION DE RÉVISION DES TABLES DE MULTIPLICATION
+   --------------------------------------------------------
+   Aucune dépendance externe, aucun stockage persistant.
+   Toutes les données vivent en mémoire pendant la session.
+   ========================================================= */
+
+// --- État global du jeu (en mémoire uniquement) ---
+const state = {
+  selectedTables: [],   // tables choisies par l'enfant (ex: [2, 5, 7])
+  questionCount: 20,    // nombre de questions total
+  mode: 'normal',       // 'normal' ou 'reverse'
+  timerOn: false,       // chrono activé ?
+  questions: [],        // liste des questions générées
+  currentIndex: 0,      // index de la question courante
+  score: 0,             // nombre de bonnes réponses
+  mistakes: [],         // questions ratées pour la révision
+  timerInterval: null,  // référence du setInterval du chrono
+  sessionStart: 0,      // timestamp début de session (ms)
+};
+
+// --- Raccourcis utiles ---
+const $ = (id) => document.getElementById(id);
+const showScreen = (id) => {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+};
+
+/* =========================================================
+   1. INITIALISATION DE L'ÉCRAN D'ACCUEIL
+   ========================================================= */
+
+// Génère dynamiquement les boutons des tables 1 à 10
+function buildTablesGrid() {
+  const grid = $('tables-grid');
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'table-btn';
+    btn.textContent = i;
+    btn.dataset.table = i;
+    btn.addEventListener('click', () => toggleTable(i, btn));
+    grid.appendChild(btn);
+  }
+}
+
+// Bascule la sélection d'une table individuelle
+function toggleTable(num, btnEl) {
+  const idx = state.selectedTables.indexOf(num);
+  if (idx === -1) {
+    state.selectedTables.push(num);
+    btnEl.classList.add('selected');
+  } else {
+    state.selectedTables.splice(idx, 1);
+    btnEl.classList.remove('selected');
+  }
+  // Mise à jour visuelle du bouton "Toutes les tables"
+  updateAllTablesButton();
+}
+
+// Sélectionne / désélectionne toutes les tables
+function toggleAllTables() {
+  const allBtn = $('btn-all-tables');
+  const allSelected = state.selectedTables.length === 10;
+  const tableBtns = document.querySelectorAll('.table-btn');
+
+  if (allSelected) {
+    state.selectedTables = [];
+    tableBtns.forEach(b => b.classList.remove('selected'));
+    allBtn.classList.remove('selected');
+  } else {
+    state.selectedTables = [1,2,3,4,5,6,7,8,9,10];
+    tableBtns.forEach(b => b.classList.add('selected'));
+    allBtn.classList.add('selected');
+  }
+}
+
+function updateAllTablesButton() {
+  const allBtn = $('btn-all-tables');
+  if (state.selectedTables.length === 10) allBtn.classList.add('selected');
+  else allBtn.classList.remove('selected');
+}
+
+// Gère la sélection exclusive dans un groupe d'options
+function setupExclusiveGroup(selector, onSelect) {
+  document.querySelectorAll(selector).forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll(selector).forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      onSelect(btn);
+    });
+  });
+}
+
+/* =========================================================
+   2. GÉNÉRATION DES QUESTIONS
+   ========================================================= */
+
+// Mélange un tableau (Fisher-Yates) pour éviter les répétitions consécutives
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Construit la liste des questions selon les tables sélectionnées
+function generateQuestions() {
+  const pool = [];
+  // Pour chaque table sélectionnée, on crée toutes les multiplications de 1 à 10
+  state.selectedTables.forEach(t => {
+    for (let n = 1; n <= 10; n++) {
+      pool.push({ a: t, b: n, answer: t * n });
+    }
+  });
+
+  // On mélange puis on prend le bon nombre, en complétant si nécessaire
+  shuffle(pool);
+  const questions = [];
+  while (questions.length < state.questionCount) {
+    if (pool.length === 0) break;
+    questions.push(pool[questions.length % pool.length]);
+  }
+  // Re-mélange final pour éviter les patterns
+  state.questions = shuffle(questions.slice(0, state.questionCount));
+}
+
+/* =========================================================
+   3. DÉROULEMENT DU QUIZ
+   ========================================================= */
+
+function startQuiz() {
+  // Vérification : au moins une table sélectionnée
+  if (state.selectedTables.length === 0) {
+    alert('Choisis au moins une table à réviser ! 😊');
+    return;
+  }
+
+  // Réinitialisation de l'état
+  state.currentIndex = 0;
+  state.score = 0;
+  state.mistakes = [];
+  state.sessionStart = Date.now();
+
+  generateQuestions();
+  showScreen('screen-quiz');
+  $('stars-display').innerHTML = '';
+
+  // Démarrage du chrono de session si activé
+  if (state.timerOn) startSessionTimer();
+  else $('timer-display').textContent = '';
+
+  showQuestion();
+}
+
+function startSessionTimer() {
+  if (state.timerInterval) clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(() => {
+    const sec = Math.floor((Date.now() - state.sessionStart) / 1000);
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    $('timer-display').textContent = `⏱ ${m}:${s.toString().padStart(2, '0')}`;
+  }, 1000);
+}
+
+function stopSessionTimer() {
+  if (state.timerInterval) {
+    clearInterval(state.timerInterval);
+    state.timerInterval = null;
+  }
+}
+
+// Affiche la question courante (mode normal ou inversé)
+function showQuestion() {
+  const q = state.questions[state.currentIndex];
+  const total = state.questions.length;
+
+  $('question-counter').textContent = `Question ${state.currentIndex + 1} / ${total}`;
+  $('live-score').textContent = `⭐ ${state.score}`;
+  $('progress-fill').style.width = `${(state.currentIndex / total) * 100}%`;
+
+  // Mode normal : on demande le résultat (ex. "3 × 4 = ?")
+  // Mode inversé : on donne le résultat et on demande un des facteurs (ex. "? × 4 = 12")
+  if (state.mode === 'normal') {
+    $('question-text').innerHTML = `${q.a} × ${q.b} <span class="equals">=</span> ?`;
+    q.expected = q.answer; // ce qu'on attend de l'enfant
+  } else {
+    // En mode inversé, on cache le premier facteur au hasard
+    const hideFirst = Math.random() < 0.5;
+    if (hideFirst) {
+      $('question-text').innerHTML = `? × ${q.b} <span class="equals">=</span> ${q.answer}`;
+      q.expected = q.a;
+    } else {
+      $('question-text').innerHTML = `${q.a} × ? <span class="equals">=</span> ${q.answer}`;
+      q.expected = q.b;
+    }
+  }
+
+  // Réinitialisation du champ de saisie
+  const input = $('answer-input');
+  input.value = '';
+  input.disabled = false;
+  $('feedback').className = 'feedback';
+  $('feedback').textContent = '';
+  input.focus();
+}
+
+// Valide la réponse saisie par l'enfant
+function validateAnswer() {
+  const input = $('answer-input');
+  const raw = input.value.trim();
+  if (raw === '') return; // on n'accepte pas une saisie vide
+
+  const userAnswer = parseInt(raw, 10);
+  const q = state.questions[state.currentIndex];
+  const correct = (userAnswer === q.expected);
+
+  // Désactive la saisie le temps de l'animation
+  input.disabled = true;
+
+  const fb = $('feedback');
+  if (correct) {
+    state.score++;
+    fb.textContent = '✅ Bravo, c\'est juste !';
+    fb.className = 'feedback show correct';
+    addStar();
+  } else {
+    // Reconstitue la "vraie" opération pour l'affichage
+    const text = state.mode === 'normal'
+      ? `${q.a} × ${q.b} = ${q.answer}`
+      : `${q.a} × ${q.b} = ${q.answer}`;
+    fb.innerHTML = `❌ La bonne réponse était <strong>${q.expected}</strong>`;
+    fb.className = 'feedback show wrong';
+    state.mistakes.push({
+      question: text,
+      userAnswer: isNaN(userAnswer) ? '?' : userAnswer,
+      correct: q.expected,
+    });
+  }
+  $('live-score').textContent = `⭐ ${state.score}`;
+
+  // Passage automatique à la question suivante après un court délai
+  setTimeout(nextQuestion, correct ? 900 : 1800);
+}
+
+// Ajoute une étoile animée pour chaque bonne réponse (max 10 affichées)
+function addStar() {
+  const container = $('stars-display');
+  if (container.children.length >= 10) {
+    container.innerHTML = ''; // on recommence pour ne pas saturer
+  }
+  const star = document.createElement('span');
+  star.className = 'star';
+  star.textContent = '⭐';
+  container.appendChild(star);
+}
+
+function nextQuestion() {
+  state.currentIndex++;
+  if (state.currentIndex >= state.questions.length) {
+    endQuiz();
+  } else {
+    showQuestion();
+  }
+}
+
+/* =========================================================
+   4. ÉCRAN DE RÉSULTATS
+   ========================================================= */
+
+function endQuiz() {
+  stopSessionTimer();
+
+  const total = state.questions.length;
+  const score = state.score;
+  const ratio = score / total;
+
+  $('final-score').textContent = `${score} / ${total}`;
+
+  // Titre et message d'encouragement adaptés au résultat
+  let title, msg, stars;
+  if (ratio === 1) {
+    title = '🏆 PARFAIT !';
+    msg = 'Incroyable, tu as tout juste ! Tu es un vrai champion des tables ! 🌟';
+    stars = '⭐⭐⭐⭐⭐';
+  } else if (ratio >= 0.8) {
+    title = '🎉 Super !';
+    msg = 'Excellent travail ! Tu maîtrises presque toutes les tables. Continue comme ça !';
+    stars = '⭐⭐⭐⭐';
+  } else if (ratio >= 0.6) {
+    title = '😊 Bien joué !';
+    msg = 'C\'est un bon résultat ! Encore un peu d\'entraînement et ce sera parfait.';
+    stars = '⭐⭐⭐';
+  } else if (ratio >= 0.4) {
+    title = '💪 Pas mal !';
+    msg = 'Tu progresses ! Révise les opérations ci-dessous et recommence, tu vas y arriver.';
+    stars = '⭐⭐';
+  } else {
+    title = '🌱 Courage !';
+    msg = 'Ce n\'est pas grave, on apprend en s\'entraînant ! Regarde les réponses et réessaie.';
+    stars = '⭐';
+  }
+
+  // Bonus : ajout du temps de session si chrono actif
+  if (state.timerOn) {
+    const sec = Math.floor((Date.now() - state.sessionStart) / 1000);
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    msg += `<br><br>⏱ Temps total : ${m} min ${s} s`;
+  }
+
+  $('results-title').textContent = title;
+  $('encouragement-msg').innerHTML = msg;
+  $('final-stars').textContent = stars;
+
+  // Liste des erreurs
+  const mistakesSection = $('mistakes-section');
+  const mistakesList = $('mistakes-list');
+  if (state.mistakes.length === 0) {
+    mistakesSection.style.display = 'none';
+  } else {
+    mistakesSection.style.display = 'block';
+    mistakesList.innerHTML = '';
+    state.mistakes.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'mistake-item';
+      div.innerHTML = `${m.question} &nbsp; — &nbsp; ta réponse : <span class="wrong-ans">${m.userAnswer}</span> &nbsp; bonne réponse : <span class="right-ans">${m.correct}</span>`;
+      mistakesList.appendChild(div);
+    });
+  }
+
+  showScreen('screen-results');
+}
+
+/* =========================================================
+   5. CÂBLAGE DES ÉVÉNEMENTS
+   ========================================================= */
+
+function init() {
+  buildTablesGrid();
+
+  // Bouton "toutes les tables"
+  $('btn-all-tables').addEventListener('click', toggleAllTables);
+
+  // Groupes d'options exclusives
+  setupExclusiveGroup('.count-btn', (btn) => {
+    state.questionCount = parseInt(btn.dataset.count, 10);
+  });
+  setupExclusiveGroup('.mode-btn', (btn) => {
+    state.mode = btn.dataset.mode;
+  });
+  setupExclusiveGroup('.timer-btn', (btn) => {
+    state.timerOn = (btn.dataset.timer === 'on');
+  });
+
+  // Bouton de démarrage
+  $('btn-start').addEventListener('click', startQuiz);
+
+  // Validation de la réponse (clic ou Entrée)
+  $('btn-validate').addEventListener('click', validateAnswer);
+  $('answer-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      validateAnswer();
+    }
+  });
+
+  // Boutons de l'écran de résultats
+  $('btn-replay').addEventListener('click', startQuiz);
+  $('btn-home').addEventListener('click', () => {
+    stopSessionTimer();
+    showScreen('screen-home');
+  });
+
+  // Bouton "maison" pendant le quiz : demande confirmation avant d'abandonner
+  $('btn-quit').addEventListener('click', () => {
+    if (confirm('Veux-tu vraiment arrêter la session ? Ta progression sera perdue.')) {
+      stopSessionTimer();
+      showScreen('screen-home');
+    }
+  });
+}
+
+// Lancement au chargement
+init();
+</script>
+
+</body>
+</html>
